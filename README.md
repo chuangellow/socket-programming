@@ -78,7 +78,7 @@ int main(void) {
 }
 ```
 
-## Server 和 Client 端的連線
+## Server 和 Client 端的連線設定
 
 ### sockaddr
 
@@ -249,11 +249,59 @@ int main(void) {
 
 再來，我們綁定 server 這端到指定的位址或是 port 之後，我們必須要讓 server 持續監聽這個 port，來知道說是否有資料進來。
 
-這裡就使用了
+這裡會使用 ```listen``` 來監聽指定的 port，listen 的 prototype 定義如下，具體可以參考 [man page](https://man7.org/linux/man-pages/man2/listen.2.html)：
+
+```
+int listen(int sockfd, int backlog);
+```
+
+其中：
+
+- sockfd：剛剛創建的 socket 的 file descriptor
+- backlog：規定最多能有幾個人能連入server
+
+若成功則回傳值 0，反之則 -1。
+
+注意，在 server 監聽某個 port 時，因為 server 主機一次只能服務一個連線請求，當每次請求一來時，我們需要以佇列的方式，將請求排序處理，這個佇列就稱為 request queue，這裡的 backlog，就是在規定這個佇列的最大大小，最多可以容納多少的 pending request，可以透過設定為：```SOMAXCONN``` 來讓系統決定 request queue 的大小。
+
+當佇列滿時，client 再送出請求就會失敗並得到 ```ECONNREFUSED```。
+
+### Server: Accept
+
+在 server 聆聽某個 port 後，我們可以透過使用 ```accept``` 來接受 client 的請求， accept 的 prototype 如下，定義可以詳見 [man page](https://man7.org/linux/man-pages/man2/accept.2.html)。
+
+```
+int accept(int sockfd, struct sockaddr *_Nullable restrict addr,
+                  socklen_t *_Nullable restrict addrlen);
+```
+
+其中：
+- sockfd：剛剛創建的 socket 的 file descriptor
+- addr：client 端空的 ```sockaddr_in```，用作儲存 client 端的 address 還有 port
+- addrlen：```sockaddr_in``` 的大小
+
+回傳值為一個新的Socket描述符，之後和該 accepted client 溝通都是用這個 socket，如果失敗則回傳 -1。
+
+注意的是，這裡的 addr 是 client 端的 ```sockaddr_in``` 資訊，和前面的不同。
 
 ### Client: Connect
 
-再來是 client 這一端，同樣需要
+再來，server 端設定好監聽某個 port，並能夠接受 client 的請求後，下面就是 client 這一端要和 server 進行連線了，可以使用 ```connect``` 來連線到提供的 server address 上，一樣，他的 prototype 詳見 [man page](https://man7.org/linux/man-pages/man2/connect.2.html) 如下：
+
+```
+int connect(int sockfd, const struct sockaddr *addr,
+              	socklen_t addrlen);
+```
+
+其中：
+
+- sockfd：client 端建立的 socket 回傳的 file descriptor
+- addr：欲連線至的 server 相關的 ```sockaddr_in``` 資訊
+- addrlen：```sockaddr_in``` 的大小
+
+成功則回傳 0 ，反之為 -1。
+
+
 
 ## Envirnoment Setup
 
@@ -286,6 +334,8 @@ docker run -it --rm --name client-container --link server-container socket-progr
 
 ## References
 
+- [Linux 服務器編程](https://xiaoxiami.gitbook.io/linux-server/)
+- [從 Linux 源碼看 Socket-TCP- 的 accept](https://www.readfog.com/a/1638167776017354752)
 - [socket man page](https://man7.org/linux/man-pages/man2/socket.2.html)
 - [TCP Socket Programming 學習筆記](http://zake7749.github.io/2015/03/17/SocketProgramming/)
 - [socket programming](https://github.com/davidleitw/socket)
