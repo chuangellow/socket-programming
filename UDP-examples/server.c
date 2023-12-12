@@ -37,4 +37,12 @@ int main(void) {
 		perror("accept failed");
 		exit(EXIT_FAILURE);
 	}
+
+	while (1) {
+		read(new_socket, buffer, BUFFER_SIZE);
+		printf("Client: %s\n", buffer);
+		memset(buffer, 0, BUFFER_SIZE);
+		fgets(buffer, BUFFER_SIZE, stdin);
+		write(new_socket, buffer, strlen(buffer));
+	}
 }
